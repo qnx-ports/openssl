@@ -1,0 +1,140 @@
+#!/bin/sh
+
+function hook_configure {
+
+	echo "Copying source into $(pwd) ..."
+	rsync -r --exclude=.git --exclude=.github --exclude=qnx ../../../.. .
+
+	case ${TARGET_SYSNAME} in
+	nto)
+		# Log build directory so we can fix it on target for running automated tests
+		# You want to substitute the path where it was built with the location it is
+		# installed on target for testing using a procmgr link
+		echo "SRCDIR_FIX=$(echo $(pwd) | rev | cut -d '/' -f5- | rev)" > qnxtest_common.sh
+
+		# async unsupported on QNX
+		./Configure enable-fips no-async no-capieng no-padlockeng --prefix=/usr/local qnx-${cpu}
+		;;
+
+	*)
+		echo "Unsupported target ${TARGET_SYSNAME}"
+		exit 1
+		;;
+	esac
+
+	# The QNX recursive make checks for config.status but
+	# OpenSSL produces configdata.pm and then Makefile
+	if [ -f Makefile ]; then
+		touch config.status
+	fi
+}
+
+function gen_useinfo {
+
+	if ! use -i libcrypto.so.3 > /dev/null 2>&1; then
+		gen_pinfo -nlibcrypto.so.3 libcrypto.so.3 usr/local/lib DESCRIPTION="OpenSSL Crypto Library (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f libcrypto.so.3.pinfo libcrypto.so.3
+	fi
+
+	if ! use -i libssl.so.3 > /dev/null 2>&1; then
+		gen_pinfo -nlibssl.so.3 libssl.so.3 usr/local/lib DESCRIPTION="OpenSSL Secure Socket Library (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f libssl.so.3.pinfo libssl.so.3
+	fi
+
+	if ! use -i apps/openssl > /dev/null 2>&1; then
+		gen_pinfo -napps/openssl openssl usr/local/bin DESCRIPTION="OpenSSL Command Line Utility (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f apps/openssl.pinfo apps/openssl
+	fi
+
+	if ! use -i engines/devcrypto.so > /dev/null 2>&1; then
+		gen_pinfo -nengines/devcrypto.so devcrypto.so usr/local/lib/engines-3 DESCRIPTION="OpenSSL /dev/crypto Engine Module (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f engines/devcrypto.so.pinfo engines/devcrypto.so
+	fi
+
+	if ! use -i engines/loader_attic.so > /dev/null 2>&1; then
+		gen_pinfo -nengines/loader_attic.so loader_attic.so usr/local/lib/engines-3 DESCRIPTION="OpenSSL Loader Test Engine Module (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f engines/loader_attic.so.pinfo engines/loader_attic.so
+	fi
+
+	if ! use -i providers/legacy.so > /dev/null 2>&1; then
+		gen_pinfo -nproviders/legacy.so legacy.so usr/local/lib/ossl-modules DESCRIPTION="OpenSSL Legacy Provider Module (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f providers/legacy.so.pinfo providers/legacy.so
+	fi
+
+	if ! use -i providers/fips.so > /dev/null 2>&1; then
+		gen_pinfo -nproviders/fips.so fips.so usr/local/lib/ossl-modules DESCRIPTION="OpenSSL FIPS Provider Module (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f providers/fips.so.pinfo providers/fips.so
+	fi
+}
+
+function hook_make {
+	case ${TARGET_SYSNAME} in
+	nto)
+		INSTALL_ROOT=${INSTALL_ROOT_nto}
+		;;
+
+	*)
+		echo "Unsupported target ${TARGET_SYSNAME}"
+		exit 1
+		;;
+	esac
+
+	FixMakeEnvironment
+
+	if [ "${make_cmds}" == "install" ]; then
+		# install doesn't depend on building in OpenSSL's Makefile :-(
+		make -fMakefile \
+			${make_CC:+"CC=${make_CC}"} \
+			${make_defns} \
+			${ac_autotools} \
+			${make_opts} \
+			${JLEVEL:+"-j${JLEVEL}"} \
+			|| exit;
+
+		OSSL_VERSION=$(grep "OPENSSL_VERSION_TEXT" include/openssl/opensslv.h | sed -n 's/.*OpenSSL \([^ ]*\).*/\1/p')
+
+		case ${TARGET_SYSNAME} in
+		nto)
+			gen_useinfo
+			${CP_HOST} include/openssl/configuration.h ${INSTALL_ROOT}/usr/local/include/openssl/${cpudir}/configuration.h
+			;;
+		esac
+
+		# install_dev for headers and libs to correct paths
+		make -fMakefile \
+			${make_CC:+"CC=${make_CC}"} \
+			${make_defns} \
+			${ac_autotools} \
+			${make_opts} \
+			DESTDIR=\"${INSTALL_ROOT}\" LIBDIR=\"../../${cpudir}/usr/local/lib\" install_dev \
+			${JLEVEL:+"-j${JLEVEL}"} \
+			|| exit;
+
+		# install_engines and install_runtime (executables) to correct paths
+		make -fMakefile \
+			${make_CC:+"CC=${make_CC}"} \
+			${make_defns} \
+			${ac_autotools} \
+			${make_opts} \
+			DESTDIR=\"${INSTALL_ROOT}/${cpudir}\" install_engines install_modules install_fips install_runtime \
+			${JLEVEL:+"-j${JLEVEL}"} \
+			|| exit;
+
+		case ${TARGET_SYSNAME} in
+		nto)
+			# Create the right configuration.h redirecting to the arch specific one
+			${CP_HOST} ../public/configuration.h ${INSTALL_ROOT}/usr/local/include/openssl/configuration.h
+			;;
+		esac
+
+	else
+		make -fMakefile \
+			${make_CC:+"CC=${make_CC}"} \
+			${make_defns} \
+			${ac_autotools} \
+			${make_opts} \
+			${make_cmds} \
+			${JLEVEL:+"-j${JLEVEL}"} \
+			|| exit;
+		fi
+}
