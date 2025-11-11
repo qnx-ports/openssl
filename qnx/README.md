@@ -35,10 +35,7 @@ When building your applications, you should pass the `-I` and `-L` parameters to
 
 For example, to build **hello_ssl** for the **aarch64** architecture, run:
 
-`qcc -Vgcc_ntoaarch64le hello_ssl.c
--I$QNX_TARGET/usr/local/include
--L$QNX_TARGET/aarch64le/usr/local/lib
--lssl -lcrypto`
+`qcc -Vgcc_ntoaarch64le -o hello_ssl hello_ssl.c -I$QNX_TARGET/usr/local/include -L$QNX_TARGET/aarch64le/usr/local/lib -lssl -lcrypto`
 
 After building, copy the **OpenSSL 3.5.4** libraries to a directory on the target that is **different from the system libraries**.  
 
