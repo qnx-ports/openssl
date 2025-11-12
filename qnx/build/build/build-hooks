@@ -31,14 +31,14 @@ function hook_configure {
 
 function gen_useinfo {
 
-	if ! use -i libcrypto.so.3 > /dev/null 2>&1; then
-		gen_pinfo -nlibcrypto.so.3 libcrypto.so.3 usr/local/lib DESCRIPTION="OpenSSL Crypto Library (${OSSL_VERSION})"
-		${UM_HOST} -iTAGID -iVERSION -f libcrypto.so.3.pinfo libcrypto.so.3
+	if ! use -i libcrypto.so.3.5 > /dev/null 2>&1; then
+		gen_pinfo -nlibcrypto.so.3.5 libcrypto.so.3.5 usr/local/lib DESCRIPTION="OpenSSL Crypto Library (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f libcrypto.so.3.5.pinfo libcrypto.so.3.5
 	fi
 
-	if ! use -i libssl.so.3 > /dev/null 2>&1; then
-		gen_pinfo -nlibssl.so.3 libssl.so.3 usr/local/lib DESCRIPTION="OpenSSL Secure Socket Library (${OSSL_VERSION})"
-		${UM_HOST} -iTAGID -iVERSION -f libssl.so.3.pinfo libssl.so.3
+	if ! use -i libssl.so.3.5 > /dev/null 2>&1; then
+		gen_pinfo -nlibssl.so.3.5 libssl.so.3.5 usr/local/lib DESCRIPTION="OpenSSL Secure Socket Library (${OSSL_VERSION})"
+		${UM_HOST} -iTAGID -iVERSION -f libssl.so.3.5.pinfo libssl.so.3.5
 	fi
 
 	if ! use -i apps/openssl > /dev/null 2>&1; then
@@ -47,12 +47,12 @@ function gen_useinfo {
 	fi
 
 	if ! use -i engines/devcrypto.so > /dev/null 2>&1; then
-		gen_pinfo -nengines/devcrypto.so devcrypto.so usr/local/lib/engines-3 DESCRIPTION="OpenSSL /dev/crypto Engine Module (${OSSL_VERSION})"
+		gen_pinfo -nengines/devcrypto.so devcrypto.so usr/local/lib/engines-3.5 DESCRIPTION="OpenSSL /dev/crypto Engine Module (${OSSL_VERSION})"
 		${UM_HOST} -iTAGID -iVERSION -f engines/devcrypto.so.pinfo engines/devcrypto.so
 	fi
 
 	if ! use -i engines/loader_attic.so > /dev/null 2>&1; then
-		gen_pinfo -nengines/loader_attic.so loader_attic.so usr/local/lib/engines-3 DESCRIPTION="OpenSSL Loader Test Engine Module (${OSSL_VERSION})"
+		gen_pinfo -nengines/loader_attic.so loader_attic.so usr/local/lib/engines-3.5 DESCRIPTION="OpenSSL Loader Test Engine Module (${OSSL_VERSION})"
 		${UM_HOST} -iTAGID -iVERSION -f engines/loader_attic.so.pinfo engines/loader_attic.so
 	fi
 
