@@ -365,7 +365,7 @@ sub perlapp {
         my @cmdargs = ( @{$cmd} );
         my @prog = __apps_file(shift @cmdargs, undef);
         return cmd([ @interpreter, @interpreter_args,
-                     @prog, @cmdargs ], %opts) -> (shift);
+                     @prog, @cmdargs ], exe_shell => $ENV{EXE_SHELL}, %opts) -> (shift);
     }
 }
 
@@ -379,7 +379,7 @@ sub perltest {
         my @cmdargs = ( @{$cmd} );
         my @prog = __test_file(shift @cmdargs, undef);
         return cmd([ @interpreter, @interpreter_args,
-                     @prog, @cmdargs ], %opts) -> (shift);
+                     @prog, @cmdargs ], exe_shell => $ENV{EXE_SHELL}, %opts) -> (shift);
     }
 }
 
